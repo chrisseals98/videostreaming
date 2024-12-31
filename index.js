@@ -1,5 +1,4 @@
 const express = require('express');
-const basicAuth = require('basic-auth');
 const { spawn } = require('child_process');
 const cors = require('cors');
 const ffmpegPath = require('ffmpeg-static');
@@ -15,10 +14,6 @@ const ffmpegProcess = spawn(ffmpegPath, [
   '-i', 'video="GENERAL WEBCAM"', // Replace with your webcam name
   '-c:v', 'vp8',          // Video codec
   '-f', 'webm',           // Output format
-  //'-hwaccel', 'cuda',
-  //'-c:v', 'h264_nvenc',
-  // '-b:v', '1M',          // Set a reasonable bitrate
-  // '-bufsize', '1M',      // Set the buffer size for streaming
   'pipe:1'                // Pipe to STDOUT
 ], { shell: true });
 
@@ -30,7 +25,7 @@ ffmpegProcess.stdout.on("data", (chunk) => {
   if (buffer.length > MAX_BUFFER_SIZE) {
     buffer.shift(); // Remove the oldest chunk
   }
-  console.log("wrote to buffer ", "current size: ", buffer.length)
+  //console.log("wrote to buffer ", "current size: ", buffer.length)
   buffer.push(chunk);
   clients.forEach(client => {
     if(!client.destroyed) {
@@ -51,28 +46,13 @@ ffmpegProcess.on('close', (code) => {
 
 
 
+// Added this while troubleshooting, might not be needed
 app.use(cors());
-
-// Middleware to check HTTP Basic Authentication
-function basicAuthMiddleware(req, res, next) {
-  const user = basicAuth(req);
-  
-  // Simple check for hardcoded credentials
-  if (user && user.name === 'very' && user.pass === 'sealy') {
-    return next(); // If credentials are correct, continue to the route
-  } else {
-    res.setHeader('WWW-Authenticate', 'Basic realm="Restricted"');
-    res.status(401).send('Unauthorized');
-  }
-}
-
-// Protect routes with the basicAuthMiddleware
-//app.use('/video', basicAuthMiddleware);
 
 // Serve static HTML page for the video
 app.use(express.static("public"));
 
-// // Endpoint to stream webcam footage
+// Endpoint to stream webcam footage
 app.get('/video', (req, res) => {
   //set headers
   res.setHeader('Content-Type', 'video/webm');
